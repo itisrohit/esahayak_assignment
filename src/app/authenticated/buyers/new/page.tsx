@@ -1,0 +1,393 @@
+"use client";
+
+import Link from "next/link";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardFooter,
+} from "@/components/ui/card";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
+import { TagInput } from "@/components/ui/tag-input";
+
+interface FormData {
+  fullName: string;
+  email: string;
+  phone: string;
+  city: string;
+  propertyType: string;
+  bhk: string;
+  purpose: string;
+  budgetMin: string;
+  budgetMax: string;
+  timeline: string;
+  source: string;
+  notes: string;
+  tags: string[];
+}
+
+interface FormErrors {
+  [key: string]: string;
+}
+
+export default function NewBuyerPage() {
+  const router = useRouter();
+  const [formData, setFormData] = useState<FormData>({
+    fullName: "",
+    email: "",
+    phone: "",
+    city: "",
+    propertyType: "",
+    bhk: "",
+    purpose: "",
+    budgetMin: "",
+    budgetMax: "",
+    timeline: "",
+    source: "",
+    notes: "",
+    tags: [],
+  });
+  const [errors] = useState<FormErrors>({});
+
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSelectChange = (name: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleTagsChange = (tags: string[]) => {
+    setFormData((prev) => ({ ...prev, tags }));
+  };
+
+  const validate = () => {
+    const newErrors: FormErrors = {};
+
+    if (!formData.fullName.trim()) {
+      newErrors.fullName = "Full name is required";
+    }
+
+    if (!formData.email.trim()) {
+      newErrors.email = "Email is required";
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      newErrors.email = "Email is invalid";
+    }
+
+    if (!formData.phone.trim()) {
+      newErrors.phone = "Phone is required";
+    }
+
+    if (!formData.city.trim()) {
+      newErrors.city = "City is required";
+    }
+
+    if (!formData.propertyType) {
+      newErrors.propertyType = "Property type is required";
+    }
+
+    if (
+      (formData.propertyType === "Apartment" ||
+        formData.propertyType === "Villa") &&
+      !formData.bhk.trim()
+    ) {
+      newErrors.bhk = "BHK is required for Apartment or Villa";
+    }
+
+    if (!formData.purpose) {
+      newErrors.purpose = "Purpose is required";
+    }
+
+    const budgetMin = parseFloat(formData.budgetMin);
+    const budgetMax = parseFloat(formData.budgetMax);
+
+    if (isNaN(budgetMin)) {
+      newErrors.budgetMin = "Minimum budget is required";
+    }
+
+    if (isNaN(budgetMax)) {
+      newErrors.budgetMax = "Maximum budget is required";
+    }
+
+    if (!isNaN(budgetMin) && !isNaN(budgetMax) && budgetMin > budgetMax) {
+      newErrors.budgetMax = "Maximum budget must be greater than minimum";
+    }
+
+    if (!formData.timeline) {
+      newErrors.timeline = "Timeline is required";
+    }
+
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (validate()) {
+      try {
+        // In a real app, this would be an API call
+        console.log("Form data submitted:", formData);
+        toast.success("Buyer created successfully!");
+        router.push("/authenticated/buyers");
+      } catch (error) {
+        toast.error("Failed to create buyer");
+        console.error("Error creating buyer:", error);
+      }
+    }
+  };
+
+  return (
+    <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-12">
+      <Link
+        href="/authenticated/buyers"
+        className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-primary mb-4"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="h-4 w-4"
+        >
+          <path d="m12 19-7-7 7-7" />
+          <path d="M19 12H5" />
+        </svg>
+        Back to buyers
+      </Link>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Add New Buyer</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="fullName">Full Name *</Label>
+              <Input
+                id="fullName"
+                name="fullName"
+                value={formData.fullName}
+                onChange={handleInputChange}
+                placeholder="Enter full name"
+              />
+              {errors.fullName && (
+                <p className="text-red-500 text-sm">{errors.fullName}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="email">Email *</Label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={handleInputChange}
+                placeholder="Enter email address"
+              />
+              {errors.email && (
+                <p className="text-red-500 text-sm">{errors.email}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone *</Label>
+              <Input
+                id="phone"
+                name="phone"
+                value={formData.phone}
+                onChange={handleInputChange}
+                placeholder="Enter phone number"
+              />
+              {errors.phone && (
+                <p className="text-red-500 text-sm">{errors.phone}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="city">City *</Label>
+              <Input
+                id="city"
+                name="city"
+                value={formData.city}
+                onChange={handleInputChange}
+                placeholder="Enter city"
+              />
+              {errors.city && (
+                <p className="text-red-500 text-sm">{errors.city}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="propertyType">Property Type *</Label>
+              <Select
+                name="propertyType"
+                value={formData.propertyType}
+                onValueChange={(value) => handleSelectChange("propertyType", value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select property type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Apartment">Apartment</SelectItem>
+                  <SelectItem value="Villa">Villa</SelectItem>
+                  <SelectItem value="House">House</SelectItem>
+                  <SelectItem value="Condo">Condo</SelectItem>
+                  <SelectItem value="Townhouse">Townhouse</SelectItem>
+                </SelectContent>
+              </Select>
+              {errors.propertyType && (
+                <p className="text-red-500 text-sm">{errors.propertyType}</p>
+              )}
+            </div>
+
+            {(formData.propertyType === "Apartment" ||
+              formData.propertyType === "Villa") && (
+              <div className="space-y-2">
+                <Label htmlFor="bhk">BHK *</Label>
+                <Input
+                  id="bhk"
+                  name="bhk"
+                  value={formData.bhk}
+                  onChange={handleInputChange}
+                  placeholder="e.g., 2BHK, 3BHK"
+                />
+                {errors.bhk && (
+                  <p className="text-red-500 text-sm">{errors.bhk}</p>
+                )}
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label htmlFor="purpose">Purpose *</Label>
+              <Select
+                name="purpose"
+                value={formData.purpose}
+                onValueChange={(value) => handleSelectChange("purpose", value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select purpose" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="End-use">End-use</SelectItem>
+                  <SelectItem value="Investment">Investment</SelectItem>
+                </SelectContent>
+              </Select>
+              {errors.purpose && (
+                <p className="text-red-500 text-sm">{errors.purpose}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="budgetMin">Minimum Budget *</Label>
+              <Input
+                id="budgetMin"
+                name="budgetMin"
+                type="number"
+                value={formData.budgetMin}
+                onChange={handleInputChange}
+                placeholder="Enter minimum budget"
+              />
+              {errors.budgetMin && (
+                <p className="text-red-500 text-sm">{errors.budgetMin}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="budgetMax">Maximum Budget *</Label>
+              <Input
+                id="budgetMax"
+                name="budgetMax"
+                type="number"
+                value={formData.budgetMax}
+                onChange={handleInputChange}
+                placeholder="Enter maximum budget"
+              />
+              {errors.budgetMax && (
+                <p className="text-red-500 text-sm">{errors.budgetMax}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="timeline">Timeline *</Label>
+              <Select
+                name="timeline"
+                value={formData.timeline}
+                onValueChange={(value) => handleSelectChange("timeline", value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select timeline" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Immediate">Immediate</SelectItem>
+                  <SelectItem value="3-6 months">3-6 months</SelectItem>
+                  <SelectItem value="6-12 months">6-12 months</SelectItem>
+                </SelectContent>
+              </Select>
+              {errors.timeline && (
+                <p className="text-red-500 text-sm">{errors.timeline}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="source">Source</Label>
+              <Input
+                id="source"
+                name="source"
+                value={formData.source}
+                onChange={handleInputChange}
+                placeholder="How did you find this buyer?"
+              />
+            </div>
+
+            <div className="space-y-2 sm:col-span-2">
+              <Label htmlFor="notes">Notes</Label>
+              <Textarea
+                id="notes"
+                name="notes"
+                value={formData.notes}
+                onChange={handleInputChange}
+                placeholder="Additional notes about the buyer"
+                rows={4}
+              />
+            </div>
+
+            <div className="space-y-2 sm:col-span-2">
+              <Label htmlFor="tags">Tags</Label>
+              <TagInput
+                value={formData.tags}
+                onChange={handleTagsChange}
+                suggestions={["Hot Lead", "Cold Lead", "Follow Up", "Site Visit"]}
+              />
+            </div>
+          </form>
+        </CardContent>
+        <CardFooter className="flex justify-end">
+          <Button onClick={handleSubmit}>Create Buyer</Button>
+        </CardFooter>
+      </Card>
+    </div>
+  );
+}

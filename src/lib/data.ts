@@ -1,0 +1,46 @@
+export const mockData = [
+  {
+    id: 1,
+    name: "John Doe",
+    email: "john.doe@example.com",
+    phone: "+1234567890",
+    city: "New York",
+    propertyType: "Apartment",
+    bhk: "2BHK",
+    purpose: "End-use",
+    budget: { min: 500000, max: 750000 },
+    timeline: "3-6 months",
+    source: "Website",
+    notes: "Looking for a 2BHK with a balcony.",
+    tags: ["Hot Lead", "Follow Up"],
+    updatedAt: "2023-06-15T10:00:00.000Z",
+    status: "Active",
+  },
+  {
+    id: 2,
+    name: "Jane Smith",
+    email: "jane.smith@example.com",
+    phone: "+1987654321",
+    city: "Los Angeles",
+    propertyType: "House",
+    bhk: "",
+    purpose: "Investment",
+    budget: { min: 1200000, max: 1800000 },
+    timeline: "Immediate",
+    source: "Referral",
+    notes: "Interested in properties with a large backyard.",
+    tags: ["Cold Lead"],
+    updatedAt: "2023-06-14T12:00:00.000Z",
+    status: "Pending",
+  },
+  // ... add more mock data as needed
+];
+
+export const mockHistory = [
+  { id: 1, field: 'status', oldValue: 'Active', newValue: 'Pending', timestamp: '2023-06-15T11:00:00.000Z', user: 'Admin' },
+  { id: 2, field: 'notes', oldValue: 'Looking for a 2BHK with a balcony.', newValue: 'Client is also interested in properties with a gym.', timestamp: '2023-06-16T14:30:00.000Z', user: 'Admin' },
+  { id: 3, field: 'budget', oldValue: '500000-750000', newValue: '600000-800000', timestamp: '2023-06-17T09:00:00.000Z', user: 'John Doe' },
+  { id: 4, field: 'tags', oldValue: '[\"Hot Lead\", \"Follow Up\"]', newValue: '[\"Hot Lead\", \"Follow Up\", \"Site Visit\"]', timestamp: '2023-06-18T16:00:00.000Z', user: 'Admin' },
+  { id: 5, field: 'status', oldValue: 'Pending', newValue: 'Active', timestamp: '2023-06-19T10:00:00.000Z', user: 'Admin' },
+  { id: 6, field: 'phone', oldValue: '+1234567890', newValue: '+1234567891', timestamp: '2023-06-20T12:00:00.000Z', user: 'John Doe' },
+];
