@@ -5,43 +5,38 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
+  const supabase = createClient();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/send-magic-link', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      // Use Supabase magic link authentication
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
-        body: JSON.stringify({ email }),
       });
 
-      const data = await response.json();
-      
-      if (response.ok && data.success) {
-        toast.success("Magic link sent!", {
-          description: "Check your email for the login link.",
-        });
-        // In a real app, you would redirect after the user clicks the magic link
-        // For demo purposes, we'll redirect immediately
-        setTimeout(() => {
-          router.push('/authenticated/buyers');
-        }, 2000);
-      } else {
-        throw new Error(data.message || "Failed to send magic link");
+      if (error) {
+        throw new Error(error.message);
       }
+
+      toast.success("Magic link sent!", {
+        description: "Check your email for the login link.",
+        descriptionClassName: "text-muted-foreground",
+      });
     } catch (error) {
       toast.error("Error sending magic link", {
         description: error instanceof Error ? error.message : "Please try again.",
+        descriptionClassName: "text-muted-foreground",
       });
     } finally {
       setIsLoading(false);

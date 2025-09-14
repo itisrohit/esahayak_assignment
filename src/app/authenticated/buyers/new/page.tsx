@@ -144,10 +144,14 @@ export default function NewBuyerPage() {
       try {
         // In a real app, this would be an API call
         console.log("Form data submitted:", formData);
-        toast.success("Buyer created successfully!");
+        toast.success("Buyer created successfully!", {
+          descriptionClassName: "text-muted-foreground",
+        });
         router.push("/authenticated/buyers");
       } catch (error) {
-        toast.error("Failed to create buyer");
+        toast.error("Failed to create buyer", {
+          descriptionClassName: "text-muted-foreground",
+        });
         console.error("Error creating buyer:", error);
       }
     }

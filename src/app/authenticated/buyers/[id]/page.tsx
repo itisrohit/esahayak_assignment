@@ -74,7 +74,9 @@ export default function BuyerDetailPage() {
           budgetMax: buyer.budget.max,
         });
       } else {
-        toast.error("Buyer not found");
+        toast.error("Buyer not found", {
+          descriptionClassName: "text-muted-foreground",
+        });
         router.push("/authenticated/buyers");
       }
     }
@@ -112,12 +114,17 @@ export default function BuyerDetailPage() {
       if (currentBuyer && currentBuyer.updatedAt !== formData.updatedAt) {
         toast.error(
           "This record has been changed by someone else. Please refresh the page.",
+          {
+            descriptionClassName: "text-muted-foreground",
+          }
         );
         return;
       }
 
       console.log("Form data submitted:", formData);
-      toast.success("Buyer updated successfully!");
+      toast.success("Buyer updated successfully!", {
+        descriptionClassName: "text-muted-foreground",
+      });
       router.push("/authenticated/buyers");
     }
   };
