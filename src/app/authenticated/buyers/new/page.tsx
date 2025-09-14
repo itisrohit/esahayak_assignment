@@ -23,6 +23,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { TagInput } from "@/components/ui/tag-input";
+import { createClient } from "@/lib/supabase/client";
 
 interface FormData {
   fullName: string;
@@ -61,17 +62,37 @@ export default function NewBuyerPage() {
     notes: "",
     tags: [],
   });
-  const [errors] = useState<FormErrors>({});
+  const [errors, setErrors] = useState<FormErrors>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const supabase = createClient();
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    
+    // Clear error when user starts typing
+    if (errors[name]) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
   };
 
   const handleSelectChange = (name: string, value: string) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
+    
+    // Clear error when user selects a value
+    if (errors[name]) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
   };
 
   const handleTagsChange = (tags: string[]) => {
@@ -81,18 +102,22 @@ export default function NewBuyerPage() {
   const validate = () => {
     const newErrors: FormErrors = {};
 
-    if (!formData.fullName.trim()) {
-      newErrors.fullName = "Full name is required";
+    if (formData.fullName.trim().length < 2) {
+      newErrors.fullName = "Full name must be at least 2 characters";
     }
 
-    if (!formData.email.trim()) {
-      newErrors.email = "Email is required";
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+    if (formData.email.trim() && !/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = "Email is invalid";
     }
 
     if (!formData.phone.trim()) {
       newErrors.phone = "Phone is required";
+    } else {
+      // Strip non-digit characters and validate length
+      const phoneDigits = formData.phone.replace(/\D/g, '');
+      if (phoneDigits.length < 10 || phoneDigits.length > 15) {
+        newErrors.phone = "Phone must be 10-15 digits";
+      }
     }
 
     if (!formData.city.trim()) {
@@ -115,45 +140,110 @@ export default function NewBuyerPage() {
       newErrors.purpose = "Purpose is required";
     }
 
-    const budgetMin = parseFloat(formData.budgetMin);
-    const budgetMax = parseFloat(formData.budgetMax);
+    const budgetMin = parseFloat(formData.budgetMin) || 0;
+    const budgetMax = parseFloat(formData.budgetMax) || 0;
 
-    if (isNaN(budgetMin)) {
-      newErrors.budgetMin = "Minimum budget is required";
+    if (formData.budgetMin && isNaN(budgetMin)) {
+      newErrors.budgetMin = "Minimum budget must be a number";
     }
 
-    if (isNaN(budgetMax)) {
-      newErrors.budgetMax = "Maximum budget is required";
+    if (formData.budgetMax && isNaN(budgetMax)) {
+      newErrors.budgetMax = "Maximum budget must be a number";
     }
 
-    if (!isNaN(budgetMin) && !isNaN(budgetMax) && budgetMin > budgetMax) {
-      newErrors.budgetMax = "Maximum budget must be greater than minimum";
+    if (formData.budgetMin && formData.budgetMax && budgetMin > budgetMax) {
+      newErrors.budgetMax = "Maximum budget must be greater than or equal to minimum";
     }
 
     if (!formData.timeline) {
       newErrors.timeline = "Timeline is required";
     }
 
+    setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validate()) {
+      return;
+    }
 
-    if (validate()) {
-      try {
-        // In a real app, this would be an API call
-        console.log("Form data submitted:", formData);
-        toast.success("Buyer created successfully!", {
+    setIsSubmitting(true);
+    
+    try {
+      // Get current user
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      
+      if (userError || !user) {
+        toast.error("Authentication error", {
+          description: "Please log in again",
           descriptionClassName: "text-muted-foreground",
         });
-        router.push("/authenticated/buyers");
-      } catch (error) {
-        toast.error("Failed to create buyer", {
-          descriptionClassName: "text-muted-foreground",
-        });
-        console.error("Error creating buyer:", error);
+        router.push("/login");
+        return;
       }
+
+      // Map form BHK values to enum values
+      const mapBhkValue = (bhkValue: string): string => {
+        switch (bhkValue) {
+          case "1": return "ONE";
+          case "2": return "TWO";
+          case "3": return "THREE";
+          case "4": return "FOUR";
+          default: return bhkValue; // For "Studio" and any other values
+        }
+      };
+
+      // Prepare data for API
+      const buyerData = {
+        fullName: formData.fullName,
+        email: formData.email || null,
+        phone: formData.phone,
+        city: formData.city,
+        propertyType: formData.propertyType,
+        bhk: (formData.propertyType === "Apartment" || formData.propertyType === "Villa") 
+          ? mapBhkValue(formData.bhk)
+          : null,
+        purpose: formData.purpose,
+        budgetMin: formData.budgetMin ? parseInt(formData.budgetMin) : null,
+        budgetMax: formData.budgetMax ? parseInt(formData.budgetMax) : null,
+        timeline: formData.timeline,
+        source: formData.source || "Website",
+        notes: formData.notes || null,
+        tags: formData.tags,
+        ownerId: user.id,
+      };
+
+      // Submit to API
+      const response = await fetch("/api/buyers", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(buyerData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to create buyer");
+      }
+
+      toast.success("Buyer created successfully!", {
+        description: "The new buyer lead has been added to your list",
+        descriptionClassName: "text-muted-foreground",
+      });
+      
+      router.push("/authenticated/buyers");
+    } catch (error: unknown) {
+      toast.error("Failed to create buyer", {
+        description: error instanceof Error ? error.message : "Please try again",
+        descriptionClassName: "text-muted-foreground",
+      });
+      console.error("Error creating buyer:", error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -202,7 +292,7 @@ export default function NewBuyerPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email">Email *</Label>
+              <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 name="email"
@@ -232,13 +322,22 @@ export default function NewBuyerPage() {
 
             <div className="space-y-2">
               <Label htmlFor="city">City *</Label>
-              <Input
-                id="city"
+              <Select
                 name="city"
                 value={formData.city}
-                onChange={handleInputChange}
-                placeholder="Enter city"
-              />
+                onValueChange={(value) => handleSelectChange("city", value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select city" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Chandigarh">Chandigarh</SelectItem>
+                  <SelectItem value="Mohali">Mohali</SelectItem>
+                  <SelectItem value="Zirakpur">Zirakpur</SelectItem>
+                  <SelectItem value="Panchkula">Panchkula</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
               {errors.city && (
                 <p className="text-red-500 text-sm">{errors.city}</p>
               )}
@@ -257,9 +356,9 @@ export default function NewBuyerPage() {
                 <SelectContent>
                   <SelectItem value="Apartment">Apartment</SelectItem>
                   <SelectItem value="Villa">Villa</SelectItem>
-                  <SelectItem value="House">House</SelectItem>
-                  <SelectItem value="Condo">Condo</SelectItem>
-                  <SelectItem value="Townhouse">Townhouse</SelectItem>
+                  <SelectItem value="Plot">Plot</SelectItem>
+                  <SelectItem value="Office">Office</SelectItem>
+                  <SelectItem value="Retail">Retail</SelectItem>
                 </SelectContent>
               </Select>
               {errors.propertyType && (
@@ -271,13 +370,22 @@ export default function NewBuyerPage() {
               formData.propertyType === "Villa") && (
               <div className="space-y-2">
                 <Label htmlFor="bhk">BHK *</Label>
-                <Input
-                  id="bhk"
+                <Select
                   name="bhk"
                   value={formData.bhk}
-                  onChange={handleInputChange}
-                  placeholder="e.g., 2BHK, 3BHK"
-                />
+                  onValueChange={(value) => handleSelectChange("bhk", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select BHK" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1 BHK</SelectItem>
+                    <SelectItem value="2">2 BHK</SelectItem>
+                    <SelectItem value="3">3 BHK</SelectItem>
+                    <SelectItem value="4">4 BHK</SelectItem>
+                    <SelectItem value="Studio">Studio</SelectItem>
+                  </SelectContent>
+                </Select>
                 {errors.bhk && (
                   <p className="text-red-500 text-sm">{errors.bhk}</p>
                 )}
@@ -295,8 +403,8 @@ export default function NewBuyerPage() {
                   <SelectValue placeholder="Select purpose" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="End-use">End-use</SelectItem>
-                  <SelectItem value="Investment">Investment</SelectItem>
+                  <SelectItem value="Buy">Buy</SelectItem>
+                  <SelectItem value="Rent">Rent</SelectItem>
                 </SelectContent>
               </Select>
               {errors.purpose && (
@@ -305,7 +413,7 @@ export default function NewBuyerPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="budgetMin">Minimum Budget *</Label>
+              <Label htmlFor="budgetMin">Minimum Budget</Label>
               <Input
                 id="budgetMin"
                 name="budgetMin"
@@ -320,7 +428,7 @@ export default function NewBuyerPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="budgetMax">Maximum Budget *</Label>
+              <Label htmlFor="budgetMax">Maximum Budget</Label>
               <Input
                 id="budgetMax"
                 name="budgetMax"
@@ -345,9 +453,10 @@ export default function NewBuyerPage() {
                   <SelectValue placeholder="Select timeline" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Immediate">Immediate</SelectItem>
-                  <SelectItem value="3-6 months">3-6 months</SelectItem>
-                  <SelectItem value="6-12 months">6-12 months</SelectItem>
+                  <SelectItem value="ZERO_TO_THREE_M">0-3 months</SelectItem>
+                  <SelectItem value="THREE_TO_SIX_M">3-6 months</SelectItem>
+                  <SelectItem value="GREATER_THAN_SIX_M">&gt;6 months</SelectItem>
+                  <SelectItem value="Exploring">Exploring</SelectItem>
                 </SelectContent>
               </Select>
               {errors.timeline && (
@@ -357,13 +466,22 @@ export default function NewBuyerPage() {
 
             <div className="space-y-2">
               <Label htmlFor="source">Source</Label>
-              <Input
-                id="source"
+              <Select
                 name="source"
                 value={formData.source}
-                onChange={handleInputChange}
-                placeholder="How did you find this buyer?"
-              />
+                onValueChange={(value) => handleSelectChange("source", value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select source" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Website">Website</SelectItem>
+                  <SelectItem value="Referral">Referral</SelectItem>
+                  <SelectItem value="Walk_in">Walk-in</SelectItem>
+                  <SelectItem value="Call">Call</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2 sm:col-span-2">
@@ -383,13 +501,22 @@ export default function NewBuyerPage() {
               <TagInput
                 value={formData.tags}
                 onChange={handleTagsChange}
-                suggestions={["Hot Lead", "Cold Lead", "Follow Up", "Site Visit"]}
+                suggestions={["Hot Lead", "Cold Lead", "Follow Up", "Site Visit", "Qualified", "Converted"]}
               />
             </div>
           </form>
         </CardContent>
         <CardFooter className="flex justify-end">
-          <Button onClick={handleSubmit}>Create Buyer</Button>
+          <Button onClick={handleSubmit} disabled={isSubmitting}>
+            {isSubmitting ? (
+              <>
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent mr-2"></span>
+                Creating...
+              </>
+            ) : (
+              "Create Buyer"
+            )}
+          </Button>
         </CardFooter>
       </Card>
     </div>
