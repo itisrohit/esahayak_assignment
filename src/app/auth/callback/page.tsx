@@ -1,54 +1,7 @@
-'use client';
+import { Suspense } from 'react';
+import AuthCallbackClient from './auth-callback-client';
 
-import { useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { toast } from "sonner";
-import { createClient } from "@/lib/supabase/client";
-
-export default function AuthCallbackPage() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const supabase = createClient();
-
-  useEffect(() => {
-    const handleAuth = async () => {
-      try {
-        // Get the error or success code from the URL
-        const error = searchParams.get("error");
-        const errorDescription = searchParams.get("error_description");
-        
-        if (error) {
-          throw new Error(errorDescription || "Authentication failed");
-        }
-
-        // Get the current session
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
-        if (sessionError) {
-          throw new Error(sessionError.message);
-        }
-
-        if (session) {
-          toast.success("Login successful!", {
-            description: "You have been successfully logged in.",
-            descriptionClassName: "text-muted-foreground",
-          });
-          router.push('/authenticated/buyers');
-        } else {
-          throw new Error("No session found");
-        }
-      } catch (error) {
-        toast.error("Login failed", {
-          description: error instanceof Error ? error.message : "Invalid or expired magic link.",
-          descriptionClassName: "text-muted-foreground",
-        });
-        router.push('/login');
-      }
-    };
-
-    handleAuth();
-  }, [router, searchParams, supabase]);
-
+function AuthCallbackFallback() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="text-center">
@@ -59,5 +12,13 @@ export default function AuthCallbackPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function AuthCallbackPage() {
+  return (
+    <Suspense fallback={<AuthCallbackFallback />}>
+      <AuthCallbackClient />
+    </Suspense>
   );
 }
