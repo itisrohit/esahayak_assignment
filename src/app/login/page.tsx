@@ -12,6 +12,21 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const supabase = createClient();
 
+  const getRedirectUrl = () => {
+    // Use NEXT_PUBLIC_SITE_URL if set, otherwise fallback to window.location.origin for local development
+    if (typeof window !== 'undefined') {
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+      if (siteUrl) {
+        // Ensure the URL ends with /auth/callback
+        const baseUrl = siteUrl.replace(/\/$/, ''); // Remove trailing slash if present
+        return `${baseUrl}/auth/callback`;
+      }
+      return `${window.location.origin}/auth/callback`;
+    }
+    // Server-side (shouldn't happen in this client component, but good to have)
+    return '/auth/callback';
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -21,7 +36,7 @@ export default function LoginPage() {
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          emailRedirectTo: getRedirectUrl(),
         },
       });
 
