@@ -332,6 +332,12 @@ graph TD
 - CSV Import functionality with validation (max 200 rows)
 - CSV Export of current filtered list
 
+✅ **Zod validation**: Zod validation has been fully implemented throughout the application:
+- Client-side form validation in React components using Zod schemas
+- Server-side API request validation for all buyer endpoints
+- Type-safe validation with clear error messages
+- Consistent validation rules across the entire application
+
 ✅ **Ownership & Auth**:
 - Anyone logged in can read all buyers
 - Users can edit/delete only their own leads (ownerId check)
@@ -345,25 +351,12 @@ graph TD
 
 ### Implemented Nice-to-haves
 
-✅ **Tag chips**: Tags are displayed as chips in both list and detail views
+✅ **Tag chips with typeahead**: Tags are displayed as chips with full typeahead functionality.
 
 ✅ **Basic full-text search**: Search functionality on fullName, phone, email, and notes
 
-### Implemented Nice-to-haves
-
-✅ **Tag chips**: Tags are displayed as chips in both list and detail views
-
-✅ **Basic full-text search**: Search functionality on fullName, phone, email, and notes
-
-✅ **Zod validation**: Zod validation has been fully implemented throughout the application:
-- Client-side form validation in React components using Zod schemas
-- Server-side API request validation for all buyer endpoints
-- Type-safe validation with clear error messages
-- Consistent validation rules across the entire application
 
 ### Skipped Nice-to-haves (and why)
-
-❌ **Tag chips with typeahead**: While tags are displayed as chips, typeahead functionality was not implemented due to time constraints. The current implementation uses a simple input field for tags.
 
 ❌ **Status quick-actions**: Dropdown for quick status changes in the table view was not implemented. Users can change status through the edit form.
 
