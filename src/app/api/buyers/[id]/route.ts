@@ -1,4 +1,4 @@
-import { updateBuyerWithHistory, getBuyerById } from "@/lib/buyer-service";
+import { updateBuyerWithHistory, getBuyerById, deleteBuyerWithHistory } from "@/lib/buyer-service";
 import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -28,11 +28,7 @@ export async function GET(
       return NextResponse.json({ error: "Buyer not found" }, { status: 404 });
     }
 
-    // Check if the user owns this buyer
-    if (buyer.ownerId !== user.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
+    // Anyone logged in can read any buyer (no ownership check needed)
     return NextResponse.json(buyer, { status: 200 });
   } catch (error: unknown) {
     console.error("Error fetching buyer:", error);
@@ -106,6 +102,56 @@ export async function PUT(
 
     return NextResponse.json(
       { error: "Failed to update buyer" },
+      { status: 500 },
+    );
+  }
+}
+
+// DELETE /api/buyers/[id] - Delete a specific buyer
+export async function DELETE(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> },
+) {
+  try {
+    // Get the authenticated user
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { params } = context;
+    const { id } = await params;
+    // Get the current buyer to check ownership
+    const currentBuyer = await getBuyerById(id);
+
+    if (!currentBuyer) {
+      return NextResponse.json({ error: "Buyer not found" }, { status: 404 });
+    }
+
+    // Check if the user owns this buyer
+    if (currentBuyer.ownerId !== user.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Delete the buyer
+    const deletedBuyer = await deleteBuyerWithHistory(id, user.id);
+
+    return NextResponse.json(deletedBuyer, { status: 200 });
+  } catch (error: unknown) {
+    console.error("Error deleting buyer:", error);
+
+    // Handle validation errors
+    if (error instanceof Error) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+
+    return NextResponse.json(
+      { error: "Failed to delete buyer" },
       { status: 500 },
     );
   }

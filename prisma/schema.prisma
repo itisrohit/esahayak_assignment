@@ -112,7 +112,7 @@ model BuyerHistory {
   changedBy String    @db.VarChar(255)
   changedAt DateTime  @default(now())
   diff      Json
-  buyer     Buyer     @relation(fields: [buyerId], references: [id])
+  buyer     Buyer     @relation(fields: [buyerId], references: [id], onDelete: Cascade)
 
   @@index([buyerId])
   @@index([changedBy])

@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/card";
 import { TagInput } from "@/components/ui/tag-input";
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
 
 interface Buyer {
   id: string;
@@ -42,6 +43,7 @@ interface Buyer {
   updatedAt: string;
   createdAt: string;
   status: string;
+  ownerId: string; // Add ownerId to the interface
 }
 
 interface BuyerHistory {
@@ -56,6 +58,11 @@ interface FormErrors {
   [key: string]: string;
 }
 
+interface User {
+  id: string;
+  email: string | null;
+}
+
 export default function BuyerDetailPage() {
   const router = useRouter();
   const params = useParams();
@@ -66,6 +73,8 @@ export default function BuyerDetailPage() {
   const [errors] = useState<FormErrors>({});
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [currentUser, setCurrentUser] = useState<User | null>(null); // Add current user state
 
   // Map database BHK values to form values
   const mapBhkToFormValue = (bhkValue: string | null): string => {
@@ -89,6 +98,9 @@ export default function BuyerDetailPage() {
       default: return bhkValue; // For "Studio" and any other values
     }
   };
+
+  // Check if current user is the owner of the buyer
+  const isOwner = formData && currentUser && formData.ownerId === currentUser.id;
 
   const fetchBuyer = useCallback(async () => {
     try {
@@ -136,12 +148,34 @@ export default function BuyerDetailPage() {
     }
   }, [id]);
 
+  // Fetch current user
+  const fetchCurrentUser = useCallback(async () => {
+    try {
+      const supabase = createClient();
+      const { data: { user }, error } = await supabase.auth.getUser();
+      
+      if (error || !user) {
+        router.push("/login");
+        return;
+      }
+      
+      setCurrentUser({
+        id: user.id,
+        email: user.email || null,
+      });
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      router.push("/login");
+    }
+  }, [router]);
+
   useEffect(() => {
     if (id) {
+      fetchCurrentUser(); // Fetch current user first
       fetchBuyer();
       fetchHistory();
     }
-  }, [id, fetchBuyer, fetchHistory]);
+  }, [id, fetchBuyer, fetchHistory, fetchCurrentUser]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
@@ -244,6 +278,15 @@ export default function BuyerDetailPage() {
       return;
     }
 
+    // Check if user is owner before allowing edit
+    if (!isOwner) {
+      toast.error("Unauthorized", {
+        description: "You can only edit your own buyers",
+        descriptionClassName: "text-muted-foreground",
+      });
+      return;
+    }
+
     // Prepare data for API
     const buyerData = {
       ...formData,
@@ -340,6 +383,55 @@ export default function BuyerDetailPage() {
     document.body.removeChild(link);
   };
 
+  const handleDelete = async () => {
+    if (!formData) return;
+
+    // Check if user is owner before allowing delete
+    if (!isOwner) {
+      toast.error("Unauthorized", {
+        description: "You can only delete your own buyers",
+        descriptionClassName: "text-muted-foreground",
+      });
+      return;
+    }
+
+    // Confirm deletion
+    if (!window.confirm(`Are you sure you want to delete ${formData.fullName}? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      setIsDeleting(true);
+      const response = await fetch(`/api/buyers/${id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        // Check if it's a network error
+        if (errorData.error && errorData.error.includes("Can't reach database")) {
+          throw new Error("Unable to connect to database. Please check your internet connection and try again.");
+        }
+        throw new Error(errorData.error || "Failed to delete buyer");
+      }
+
+      toast.success("Buyer deleted successfully!", {
+        descriptionClassName: "text-muted-foreground",
+      });
+
+      // Redirect to buyers list
+      router.push("/authenticated/buyers");
+    } catch (error: unknown) {
+      toast.error("Failed to delete buyer", {
+        description: (error as Error).message || "Please check your internet connection and try again",
+        descriptionClassName: "text-muted-foreground",
+      });
+      console.error("Error deleting buyer:", error);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-12 flex justify-center items-center h-64">
@@ -391,9 +483,16 @@ export default function BuyerDetailPage() {
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>View / Edit Buyer</CardTitle>
           <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={() => setIsEditing(!isEditing)}>
-              {isEditing ? "Cancel" : "Edit"}
-            </Button>
+            {isOwner && ( // Only show delete button to owner
+              <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
+                {isDeleting ? "Deleting..." : "Delete"}
+              </Button>
+            )}
+            {isOwner && ( // Only show edit button to owner
+              <Button variant="outline" onClick={() => setIsEditing(!isEditing)}>
+                {isEditing ? "Cancel" : "Edit"}
+              </Button>
+            )}
             <Button variant="outline" onClick={exportHistory}>
               Export as CSV
             </Button>
@@ -686,7 +785,7 @@ export default function BuyerDetailPage() {
           </form>
         </CardContent>
         <CardFooter className="flex justify-end">
-          {isEditing && <Button onClick={handleSubmit}>Save Changes</Button>}
+          {isEditing && isOwner && <Button onClick={handleSubmit}>Save Changes</Button>}
         </CardFooter>
       </Card>
 

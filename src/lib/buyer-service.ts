@@ -111,6 +111,7 @@ export async function getBuyersWithPagination(
     propertyType?: string;
     status?: string;
     timeline?: string;
+    ownerId?: string; // Add ownerId filter
   },
 ): Promise<{ buyers: Buyer[]; totalCount: number }> {
   // Get filtered buyers

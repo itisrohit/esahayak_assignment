@@ -16,6 +16,7 @@ export async function getBuyers(filters?: {
   propertyType?: string;
   status?: string;
   timeline?: string;
+  ownerId?: string; // Add ownerId filter
 }): Promise<Buyer[]> {
   const where: Prisma.BuyerWhereInput = {};
 
@@ -43,6 +44,11 @@ export async function getBuyers(filters?: {
 
     if (filters.timeline && filters.timeline !== "all") {
       where.timeline = filters.timeline as $Enums.Timeline;
+    }
+
+    // Add ownerId filter if provided
+    if (filters.ownerId) {
+      where.ownerId = filters.ownerId;
     }
   }
 
