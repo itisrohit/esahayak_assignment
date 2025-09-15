@@ -1,4 +1,5 @@
 import { Navbar } from "@/components/navbar/navbar";
+import ErrorBoundary from "@/components/error-boundary";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
@@ -20,7 +21,11 @@ export default async function AuthenticatedLayout({
   return (
     <div className="flex min-h-screen flex-col">
       <Navbar />
-      <main className="flex-1">{children}</main>
+      <main className="flex-1">
+        <ErrorBoundary>
+          {children}
+        </ErrorBoundary>
+      </main>
     </div>
   );
 }

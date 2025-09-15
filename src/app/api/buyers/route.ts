@@ -1,10 +1,25 @@
 import { createNewBuyer, getBuyersWithPagination } from '@/lib/buyer-service';
 import { createClient } from '@/lib/supabase/server';
-import { NextResponse } from 'next/server';
+import { isRateLimited, getRateLimitHeaders } from '@/lib/rate-limiter';
+import { NextRequest, NextResponse } from 'next/server';
 
 // POST /api/buyers - Create a new buyer
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    // Check rate limit
+    if (isRateLimited(request)) {
+      return NextResponse.json(
+        { error: 'Too many requests' },
+        { 
+          status: 429,
+          headers: {
+            ...getRateLimitHeaders(request),
+            'Retry-After': '60'
+          }
+        }
+      );
+    }
+    
     // Get the authenticated user
     const supabase = await createClient();
     const { data: { user }, error: userError } = await supabase.auth.getUser();
@@ -25,7 +40,12 @@ export async function POST(request: Request) {
       ownerId: user.id,
     });
     
-    return NextResponse.json(buyer, { status: 201 });
+    const rateLimitHeaders = getRateLimitHeaders(request);
+    
+    return NextResponse.json(buyer, { 
+      status: 201,
+      headers: rateLimitHeaders
+    });
   } catch (error: unknown) {
     console.error('Error creating buyer:', error);
     

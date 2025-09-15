@@ -1,5 +1,6 @@
 import { updateBuyerWithHistory, getBuyerById, deleteBuyerWithHistory } from "@/lib/buyer-service";
 import { createClient } from "@/lib/supabase/server";
+import { isRateLimited, getRateLimitHeaders } from "@/lib/rate-limiter";
 import { NextRequest, NextResponse } from "next/server";
 
 // GET /api/buyers/[id] - Get a specific buyer
@@ -46,6 +47,20 @@ export async function PUT(
   context: { params: Promise<{ id: string }> },
 ) {
   try {
+    // Check rate limit
+    if (isRateLimited(request)) {
+      return NextResponse.json(
+        { error: 'Too many requests' },
+        { 
+          status: 429,
+          headers: {
+            ...getRateLimitHeaders(request),
+            'Retry-After': '60'
+          }
+        }
+      );
+    }
+    
     // Get the authenticated user
     const supabase = await createClient();
     const {
@@ -90,8 +105,13 @@ export async function PUT(
 
     // Update the buyer
     const updatedBuyer = await updateBuyerWithHistory(id, body, user.id);
+    
+    const rateLimitHeaders = getRateLimitHeaders(request);
 
-    return NextResponse.json(updatedBuyer, { status: 200 });
+    return NextResponse.json(updatedBuyer, { 
+      status: 200,
+      headers: rateLimitHeaders
+    });
   } catch (error: unknown) {
     console.error("Error updating buyer:", error);
 
@@ -113,6 +133,20 @@ export async function DELETE(
   context: { params: Promise<{ id: string }> },
 ) {
   try {
+    // Check rate limit
+    if (isRateLimited(request)) {
+      return NextResponse.json(
+        { error: 'Too many requests' },
+        { 
+          status: 429,
+          headers: {
+            ...getRateLimitHeaders(request),
+            'Retry-After': '60'
+          }
+        }
+      );
+    }
+    
     // Get the authenticated user
     const supabase = await createClient();
     const {
@@ -140,8 +174,13 @@ export async function DELETE(
 
     // Delete the buyer
     const deletedBuyer = await deleteBuyerWithHistory(id, user.id);
+    
+    const rateLimitHeaders = getRateLimitHeaders(request);
 
-    return NextResponse.json(deletedBuyer, { status: 200 });
+    return NextResponse.json(deletedBuyer, { 
+      status: 200,
+      headers: rateLimitHeaders
+    });
   } catch (error: unknown) {
     console.error("Error deleting buyer:", error);
 

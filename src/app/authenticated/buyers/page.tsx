@@ -326,13 +326,42 @@ export default function BuyersPage() {
 
       {/* Empty state */}
       {!loading && buyers.length === 0 && (
-        <div className="text-center py-12">
+        <div 
+          className="text-center py-12 border-2 border-dashed rounded-lg border-muted-foreground/20"
+          role="status"
+          aria-label="No buyers found"
+        >
+          <div className="mx-auto h-16 w-16 flex items-center justify-center rounded-full bg-muted mb-4">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-8 w-8 text-muted-foreground"
+              aria-hidden="true"
+            >
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <line x1="19" x2="19" y1="8" y2="14" />
+              <line x1="22" x2="16" y1="11" y2="11" />
+            </svg>
+          </div>
           <h3 className="text-lg font-medium mb-2">No buyers found</h3>
           <p className="text-muted-foreground mb-4">
             Try adjusting your search or filter criteria
           </p>
           <Link href="/authenticated/buyers/new">
-            <Button>Add New Buyer</Button>
+            <Button 
+              aria-label="Add new buyer"
+              className="focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+            >
+              Add New Buyer
+            </Button>
           </Link>
         </div>
       )}

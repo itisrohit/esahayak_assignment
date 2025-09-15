@@ -24,6 +24,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { TagInput } from "@/components/ui/tag-input";
 import { createClient } from "@/lib/supabase/client";
+import { AlertCircle } from "lucide-react";
 
 interface FormData {
   fullName: string;
@@ -169,6 +170,14 @@ export default function NewBuyerPage() {
     e.preventDefault();
     
     if (!validate()) {
+      // Focus on the first error field
+      const firstErrorField = Object.keys(errors)[0];
+      if (firstErrorField) {
+        const element = document.querySelector(`[name="${firstErrorField}"]`);
+        if (element) {
+          (element as HTMLElement).focus();
+        }
+      }
       return;
     }
 
@@ -417,7 +426,7 @@ export default function NewBuyerPage() {
     <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-12">
       <Link
         href="/authenticated/buyers"
-        className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-primary mb-4"
+        className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-primary mb-4 focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-md px-2 py-1"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -470,9 +479,16 @@ export default function NewBuyerPage() {
                 value={formData.fullName}
                 onChange={handleInputChange}
                 placeholder="Enter full name"
+                aria-invalid={!!errors.fullName}
+                aria-describedby={errors.fullName ? "fullName-error" : undefined}
               />
               {errors.fullName && (
-                <p className="text-red-500 text-sm">{errors.fullName}</p>
+                <div className="flex items-center gap-1">
+                  <AlertCircle className="h-4 w-4 text-red-500" />
+                  <p id="fullName-error" className="text-red-500 text-sm" role="alert">
+                    {errors.fullName}
+                  </p>
+                </div>
               )}
             </div>
 
@@ -485,9 +501,16 @@ export default function NewBuyerPage() {
                 value={formData.email}
                 onChange={handleInputChange}
                 placeholder="Enter email address"
+                aria-invalid={!!errors.email}
+                aria-describedby={errors.email ? "email-error" : undefined}
               />
               {errors.email && (
-                <p className="text-red-500 text-sm">{errors.email}</p>
+                <div className="flex items-center gap-1">
+                  <AlertCircle className="h-4 w-4 text-red-500" />
+                  <p id="email-error" className="text-red-500 text-sm" role="alert">
+                    {errors.email}
+                  </p>
+                </div>
               )}
             </div>
 
@@ -499,9 +522,16 @@ export default function NewBuyerPage() {
                 value={formData.phone}
                 onChange={handleInputChange}
                 placeholder="Enter phone number"
+                aria-invalid={!!errors.phone}
+                aria-describedby={errors.phone ? "phone-error" : undefined}
               />
               {errors.phone && (
-                <p className="text-red-500 text-sm">{errors.phone}</p>
+                <div className="flex items-center gap-1">
+                  <AlertCircle className="h-4 w-4 text-red-500" />
+                  <p id="phone-error" className="text-red-500 text-sm" role="alert">
+                    {errors.phone}
+                  </p>
+                </div>
               )}
             </div>
 
@@ -512,7 +542,10 @@ export default function NewBuyerPage() {
                 value={formData.city}
                 onValueChange={(value) => handleSelectChange("city", value)}
               >
-                <SelectTrigger>
+                <SelectTrigger 
+                  aria-invalid={!!errors.city}
+                  aria-describedby={errors.city ? "city-error" : undefined}
+                >
                   <SelectValue placeholder="Select city" />
                 </SelectTrigger>
                 <SelectContent>
@@ -524,7 +557,12 @@ export default function NewBuyerPage() {
                 </SelectContent>
               </Select>
               {errors.city && (
-                <p className="text-red-500 text-sm">{errors.city}</p>
+                <div className="flex items-center gap-1">
+                  <AlertCircle className="h-4 w-4 text-red-500" />
+                  <p id="city-error" className="text-red-500 text-sm" role="alert">
+                    {errors.city}
+                  </p>
+                </div>
               )}
             </div>
 
@@ -535,7 +573,10 @@ export default function NewBuyerPage() {
                 value={formData.propertyType}
                 onValueChange={(value) => handleSelectChange("propertyType", value)}
               >
-                <SelectTrigger>
+                <SelectTrigger 
+                  aria-invalid={!!errors.propertyType}
+                  aria-describedby={errors.propertyType ? "propertyType-error" : undefined}
+                >
                   <SelectValue placeholder="Select property type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -547,7 +588,12 @@ export default function NewBuyerPage() {
                 </SelectContent>
               </Select>
               {errors.propertyType && (
-                <p className="text-red-500 text-sm">{errors.propertyType}</p>
+                <div className="flex items-center gap-1">
+                  <AlertCircle className="h-4 w-4 text-red-500" />
+                  <p id="propertyType-error" className="text-red-500 text-sm" role="alert">
+                    {errors.propertyType}
+                  </p>
+                </div>
               )}
             </div>
 
@@ -560,7 +606,10 @@ export default function NewBuyerPage() {
                   value={formData.bhk}
                   onValueChange={(value) => handleSelectChange("bhk", value)}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger 
+                    aria-invalid={!!errors.bhk}
+                    aria-describedby={errors.bhk ? "bhk-error" : undefined}
+                  >
                     <SelectValue placeholder="Select BHK" />
                   </SelectTrigger>
                   <SelectContent>
@@ -572,7 +621,12 @@ export default function NewBuyerPage() {
                   </SelectContent>
                 </Select>
                 {errors.bhk && (
-                  <p className="text-red-500 text-sm">{errors.bhk}</p>
+                  <div className="flex items-center gap-1">
+                    <AlertCircle className="h-4 w-4 text-red-500" />
+                    <p id="bhk-error" className="text-red-500 text-sm" role="alert">
+                      {errors.bhk}
+                    </p>
+                  </div>
                 )}
               </div>
             )}
@@ -584,7 +638,10 @@ export default function NewBuyerPage() {
                 value={formData.purpose}
                 onValueChange={(value) => handleSelectChange("purpose", value)}
               >
-                <SelectTrigger>
+                <SelectTrigger 
+                  aria-invalid={!!errors.purpose}
+                  aria-describedby={errors.purpose ? "purpose-error" : undefined}
+                >
                   <SelectValue placeholder="Select purpose" />
                 </SelectTrigger>
                 <SelectContent>
@@ -593,7 +650,12 @@ export default function NewBuyerPage() {
                 </SelectContent>
               </Select>
               {errors.purpose && (
-                <p className="text-red-500 text-sm">{errors.purpose}</p>
+                <div className="flex items-center gap-1">
+                  <AlertCircle className="h-4 w-4 text-red-500" />
+                  <p id="purpose-error" className="text-red-500 text-sm" role="alert">
+                    {errors.purpose}
+                  </p>
+                </div>
               )}
             </div>
 
@@ -606,9 +668,16 @@ export default function NewBuyerPage() {
                 value={formData.budgetMin}
                 onChange={handleInputChange}
                 placeholder="Enter minimum budget"
+                aria-invalid={!!errors.budgetMin}
+                aria-describedby={errors.budgetMin ? "budgetMin-error" : undefined}
               />
               {errors.budgetMin && (
-                <p className="text-red-500 text-sm">{errors.budgetMin}</p>
+                <div className="flex items-center gap-1">
+                  <AlertCircle className="h-4 w-4 text-red-500" />
+                  <p id="budgetMin-error" className="text-red-500 text-sm" role="alert">
+                    {errors.budgetMin}
+                  </p>
+                </div>
               )}
             </div>
 
@@ -621,9 +690,16 @@ export default function NewBuyerPage() {
                 value={formData.budgetMax}
                 onChange={handleInputChange}
                 placeholder="Enter maximum budget"
+                aria-invalid={!!errors.budgetMax}
+                aria-describedby={errors.budgetMax ? "budgetMax-error" : undefined}
               />
               {errors.budgetMax && (
-                <p className="text-red-500 text-sm">{errors.budgetMax}</p>
+                <div className="flex items-center gap-1">
+                  <AlertCircle className="h-4 w-4 text-red-500" />
+                  <p id="budgetMax-error" className="text-red-500 text-sm" role="alert">
+                    {errors.budgetMax}
+                  </p>
+                </div>
               )}
             </div>
 
@@ -634,7 +710,10 @@ export default function NewBuyerPage() {
                 value={formData.timeline}
                 onValueChange={(value) => handleSelectChange("timeline", value)}
               >
-                <SelectTrigger>
+                <SelectTrigger 
+                  aria-invalid={!!errors.timeline}
+                  aria-describedby={errors.timeline ? "timeline-error" : undefined}
+                >
                   <SelectValue placeholder="Select timeline" />
                 </SelectTrigger>
                 <SelectContent>
@@ -645,7 +724,12 @@ export default function NewBuyerPage() {
                 </SelectContent>
               </Select>
               {errors.timeline && (
-                <p className="text-red-500 text-sm">{errors.timeline}</p>
+                <div className="flex items-center gap-1">
+                  <AlertCircle className="h-4 w-4 text-red-500" />
+                  <p id="timeline-error" className="text-red-500 text-sm" role="alert">
+                    {errors.timeline}
+                  </p>
+                </div>
               )}
             </div>
 
@@ -678,7 +762,16 @@ export default function NewBuyerPage() {
                 onChange={handleInputChange}
                 placeholder="Additional notes about the buyer"
                 rows={4}
+                aria-describedby={errors.notes ? "notes-error" : undefined}
               />
+              {errors.notes && (
+                <div className="flex items-center gap-1">
+                  <AlertCircle className="h-4 w-4 text-red-500" />
+                  <p id="notes-error" className="text-red-500 text-sm" role="alert">
+                    {errors.notes}
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="space-y-2 sm:col-span-2">
@@ -687,12 +780,25 @@ export default function NewBuyerPage() {
                 value={formData.tags}
                 onChange={handleTagsChange}
                 suggestions={["Hot Lead", "Cold Lead", "Follow Up", "Site Visit", "Qualified", "Converted"]}
+                aria-describedby={errors.tags ? "tags-error" : undefined}
               />
+              {errors.tags && (
+                <div className="flex items-center gap-1">
+                  <AlertCircle className="h-4 w-4 text-red-500" />
+                  <p id="tags-error" className="text-red-500 text-sm" role="alert">
+                    {errors.tags}
+                  </p>
+                </div>
+              )}
             </div>
           </form>
         </CardContent>
         <CardFooter className="flex justify-end">
-          <Button onClick={handleSubmit} disabled={isSubmitting || isImporting}>
+          <Button 
+            onClick={handleSubmit} 
+            disabled={isSubmitting || isImporting}
+            className="focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+          >
             {isSubmitting ? (
               <>
                 <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent mr-2"></span>

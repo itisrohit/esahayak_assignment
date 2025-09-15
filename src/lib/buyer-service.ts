@@ -9,18 +9,19 @@ import {
   getBuyerHistory as getBuyerHistoryFromDb,
 } from "./prisma-data";
 
+// Function to validate budget constraints
+export function validateBudget(budgetMin: number | null, budgetMax: number | null): void {
+  if (budgetMin && budgetMax && budgetMin > budgetMax) {
+    throw new Error("budgetMin must be less than or equal to budgetMax");
+  }
+}
+
 // Function to create a new buyer
 export async function createNewBuyer(
   buyerData: Omit<Buyer, "id" | "updatedAt" | "createdAt">,
 ): Promise<Buyer> {
   // Validate budget constraints
-  if (
-    buyerData.budgetMin &&
-    buyerData.budgetMax &&
-    buyerData.budgetMin > buyerData.budgetMax
-  ) {
-    throw new Error("budgetMin must be less than or equal to budgetMax");
-  }
+  validateBudget(buyerData.budgetMin, buyerData.budgetMax);
 
   // For non-residential property types, BHK is optional
   const isResidential = ["Apartment", "Villa"].includes(buyerData.propertyType);

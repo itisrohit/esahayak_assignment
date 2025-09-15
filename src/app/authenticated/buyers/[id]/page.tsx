@@ -24,6 +24,7 @@ import {
 import { TagInput } from "@/components/ui/tag-input";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { AlertCircle } from "lucide-react";
 
 interface Buyer {
   id: string;
@@ -144,7 +145,11 @@ export default function BuyerDetailPage() {
       setHistory(historyData);
     } catch (error) {
       console.error("Error fetching history:", error);
-      // Don't show error toast for history as it's not critical
+      // Show error toast for history fetch failures
+      toast.error("Failed to load history", {
+        description: "Please try again later",
+        descriptionClassName: "text-muted-foreground",
+      });
     }
   }, [id]);
 
@@ -455,7 +460,7 @@ export default function BuyerDetailPage() {
     <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-12">
       <Link
         href="/authenticated/buyers"
-        className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-primary mb-4"
+        className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-primary mb-4 focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-md px-2 py-1"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -508,9 +513,16 @@ export default function BuyerDetailPage() {
                 onChange={handleInputChange}
                 disabled={!isEditing}
                 placeholder="Enter full name"
+                aria-invalid={!!errors.fullName}
+                aria-describedby={errors.fullName ? "fullName-error" : undefined}
               />
               {errors.fullName && (
-                <p className="text-red-500 text-sm">{errors.fullName}</p>
+                <div className="flex items-center gap-1">
+                  <AlertCircle className="h-4 w-4 text-red-500" />
+                  <p id="fullName-error" className="text-red-500 text-sm" role="alert">
+                    {errors.fullName}
+                  </p>
+                </div>
               )}
             </div>
             <div className="space-y-2">
@@ -523,9 +535,16 @@ export default function BuyerDetailPage() {
                 onChange={handleInputChange}
                 disabled={!isEditing}
                 placeholder="Enter email address"
+                aria-invalid={!!errors.email}
+                aria-describedby={errors.email ? "email-error" : undefined}
               />
               {errors.email && (
-                <p className="text-red-500 text-sm">{errors.email}</p>
+                <div className="flex items-center gap-1">
+                  <AlertCircle className="h-4 w-4 text-red-500" />
+                  <p id="email-error" className="text-red-500 text-sm" role="alert">
+                    {errors.email}
+                  </p>
+                </div>
               )}
             </div>
             <div className="space-y-2">
@@ -537,9 +556,16 @@ export default function BuyerDetailPage() {
                 onChange={handleInputChange}
                 disabled={!isEditing}
                 placeholder="Enter phone number"
+                aria-invalid={!!errors.phone}
+                aria-describedby={errors.phone ? "phone-error" : undefined}
               />
               {errors.phone && (
-                <p className="text-red-500 text-sm">{errors.phone}</p>
+                <div className="flex items-center gap-1">
+                  <AlertCircle className="h-4 w-4 text-red-500" />
+                  <p id="phone-error" className="text-red-500 text-sm" role="alert">
+                    {errors.phone}
+                  </p>
+                </div>
               )}
             </div>
             <div className="space-y-2">
@@ -550,7 +576,10 @@ export default function BuyerDetailPage() {
                 onValueChange={(value) => handleSelectChange("city", value)}
                 disabled={!isEditing}
               >
-                <SelectTrigger>
+                <SelectTrigger 
+                  aria-invalid={!!errors.city}
+                  aria-describedby={errors.city ? "city-error" : undefined}
+                >
                   <SelectValue placeholder="Select city" />
                 </SelectTrigger>
                 <SelectContent>
@@ -562,7 +591,12 @@ export default function BuyerDetailPage() {
                 </SelectContent>
               </Select>
               {errors.city && (
-                <p className="text-red-500 text-sm">{errors.city}</p>
+                <div className="flex items-center gap-1">
+                  <AlertCircle className="h-4 w-4 text-red-500" />
+                  <p id="city-error" className="text-red-500 text-sm" role="alert">
+                    {errors.city}
+                  </p>
+                </div>
               )}
             </div>
             <div className="space-y-2">
@@ -575,7 +609,10 @@ export default function BuyerDetailPage() {
                 }
                 disabled={!isEditing}
               >
-                <SelectTrigger>
+                <SelectTrigger 
+                  aria-invalid={!!errors.propertyType}
+                  aria-describedby={errors.propertyType ? "propertyType-error" : undefined}
+                >
                   <SelectValue placeholder="Select property type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -587,7 +624,12 @@ export default function BuyerDetailPage() {
                 </SelectContent>
               </Select>
               {errors.propertyType && (
-                <p className="text-red-500 text-sm">{errors.propertyType}</p>
+                <div className="flex items-center gap-1">
+                  <AlertCircle className="h-4 w-4 text-red-500" />
+                  <p id="propertyType-error" className="text-red-500 text-sm" role="alert">
+                    {errors.propertyType}
+                  </p>
+                </div>
               )}
             </div>
             {(formData.propertyType === "Apartment" ||
@@ -600,7 +642,10 @@ export default function BuyerDetailPage() {
                   onValueChange={(value) => handleSelectChange("bhk", value)}
                   disabled={!isEditing}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger 
+                    aria-invalid={!!errors.bhk}
+                    aria-describedby={errors.bhk ? "bhk-error" : undefined}
+                  >
                     <SelectValue placeholder="Select BHK" />
                   </SelectTrigger>
                   <SelectContent>
@@ -612,7 +657,12 @@ export default function BuyerDetailPage() {
                   </SelectContent>
                 </Select>
                 {errors.bhk && (
-                  <p className="text-red-500 text-sm">{errors.bhk}</p>
+                  <div className="flex items-center gap-1">
+                    <AlertCircle className="h-4 w-4 text-red-500" />
+                    <p id="bhk-error" className="text-red-500 text-sm" role="alert">
+                      {errors.bhk}
+                    </p>
+                  </div>
                 )}
               </div>
             )}
@@ -624,7 +674,10 @@ export default function BuyerDetailPage() {
                 onValueChange={(value) => handleSelectChange("purpose", value)}
                 disabled={!isEditing}
               >
-                <SelectTrigger>
+                <SelectTrigger 
+                  aria-invalid={!!errors.purpose}
+                  aria-describedby={errors.purpose ? "purpose-error" : undefined}
+                >
                   <SelectValue placeholder="Select purpose" />
                 </SelectTrigger>
                 <SelectContent>
@@ -633,7 +686,12 @@ export default function BuyerDetailPage() {
                 </SelectContent>
               </Select>
               {errors.purpose && (
-                <p className="text-red-500 text-sm">{errors.purpose}</p>
+                <div className="flex items-center gap-1">
+                  <AlertCircle className="h-4 w-4 text-red-500" />
+                  <p id="purpose-error" className="text-red-500 text-sm" role="alert">
+                    {errors.purpose}
+                  </p>
+                </div>
               )}
             </div>
             <div className="space-y-2">
@@ -646,9 +704,16 @@ export default function BuyerDetailPage() {
                 onChange={handleInputChange}
                 disabled={!isEditing}
                 placeholder="Enter minimum budget"
+                aria-invalid={!!errors.budgetMin}
+                aria-describedby={errors.budgetMin ? "budgetMin-error" : undefined}
               />
               {errors.budgetMin && (
-                <p className="text-red-500 text-sm">{errors.budgetMin}</p>
+                <div className="flex items-center gap-1">
+                  <AlertCircle className="h-4 w-4 text-red-500" />
+                  <p id="budgetMin-error" className="text-red-500 text-sm" role="alert">
+                    {errors.budgetMin}
+                  </p>
+                </div>
               )}
             </div>
             <div className="space-y-2">
@@ -661,9 +726,16 @@ export default function BuyerDetailPage() {
                 onChange={handleInputChange}
                 disabled={!isEditing}
                 placeholder="Enter maximum budget"
+                aria-invalid={!!errors.budgetMax}
+                aria-describedby={errors.budgetMax ? "budgetMax-error" : undefined}
               />
               {errors.budgetMax && (
-                <p className="text-red-500 text-sm">{errors.budgetMax}</p>
+                <div className="flex items-center gap-1">
+                  <AlertCircle className="h-4 w-4 text-red-500" />
+                  <p id="budgetMax-error" className="text-red-500 text-sm" role="alert">
+                    {errors.budgetMax}
+                  </p>
+                </div>
               )}
             </div>
             <div className="space-y-2">
@@ -674,7 +746,10 @@ export default function BuyerDetailPage() {
                 onValueChange={(value) => handleSelectChange("timeline", value)}
                 disabled={!isEditing}
               >
-                <SelectTrigger>
+                <SelectTrigger 
+                  aria-invalid={!!errors.timeline}
+                  aria-describedby={errors.timeline ? "timeline-error" : undefined}
+                >
                   <SelectValue placeholder="Select timeline" />
                 </SelectTrigger>
                 <SelectContent>
@@ -687,7 +762,12 @@ export default function BuyerDetailPage() {
                 </SelectContent>
               </Select>
               {errors.timeline && (
-                <p className="text-red-500 text-sm">{errors.timeline}</p>
+                <div className="flex items-center gap-1">
+                  <AlertCircle className="h-4 w-4 text-red-500" />
+                  <p id="timeline-error" className="text-red-500 text-sm" role="alert">
+                    {errors.timeline}
+                  </p>
+                </div>
               )}
             </div>
             <div className="space-y-2">
@@ -742,7 +822,16 @@ export default function BuyerDetailPage() {
                 disabled={!isEditing}
                 placeholder="Additional notes about the buyer"
                 rows={4}
+                aria-describedby={errors.notes ? "notes-error" : undefined}
               />
+              {errors.notes && (
+                <div className="flex items-center gap-1">
+                  <AlertCircle className="h-4 w-4 text-red-500" />
+                  <p id="notes-error" className="text-red-500 text-sm" role="alert">
+                    {errors.notes}
+                  </p>
+                </div>
+              )}
             </div>
             <div className="space-y-2 sm:col-span-2">
               <Label htmlFor="tags">Tags</Label>
@@ -758,6 +847,7 @@ export default function BuyerDetailPage() {
                     "Qualified",
                     "Converted",
                   ]}
+                  aria-describedby={errors.tags ? "tags-error" : undefined}
                 />
               ) : (
                 <div className="flex flex-wrap gap-2">
@@ -774,6 +864,14 @@ export default function BuyerDetailPage() {
                       No tags
                     </span>
                   )}
+                </div>
+              )}
+              {errors.tags && (
+                <div className="flex items-center gap-1">
+                  <AlertCircle className="h-4 w-4 text-red-500" />
+                  <p id="tags-error" className="text-red-500 text-sm" role="alert">
+                    {errors.tags}
+                  </p>
                 </div>
               )}
             </div>
