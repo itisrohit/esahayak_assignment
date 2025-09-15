@@ -2,6 +2,8 @@ import { updateBuyerWithHistory, getBuyerById, deleteBuyerWithHistory } from "@/
 import { createClient } from "@/lib/supabase/server";
 import { isRateLimited, getRateLimitHeaders } from "@/lib/rate-limiter";
 import { NextRequest, NextResponse } from "next/server";
+import { UpdateBuyerSchema } from "@/lib/schemas/buyer.schema";
+import { z } from "zod";
 
 // GET /api/buyers/[id] - Get a specific buyer
 export async function GET(
@@ -103,8 +105,14 @@ export async function PUT(
       }
     }
 
+    // Validate request body with Zod
+    const validatedData = UpdateBuyerSchema.parse({
+      id,
+      ...body,
+    });
+
     // Update the buyer
-    const updatedBuyer = await updateBuyerWithHistory(id, body, user.id);
+    const updatedBuyer = await updateBuyerWithHistory(id, validatedData, user.id);
     
     const rateLimitHeaders = getRateLimitHeaders(request);
 
@@ -115,7 +123,23 @@ export async function PUT(
   } catch (error: unknown) {
     console.error("Error updating buyer:", error);
 
-    // Handle validation errors
+    // Handle Zod validation errors
+    if (error instanceof z.ZodError) {
+      const errorMessages = error.issues.map((issue) => ({
+        path: issue.path.join('.'),
+        message: issue.message,
+      }));
+      
+      return NextResponse.json(
+        { 
+          error: 'Validation failed',
+          details: errorMessages
+        },
+        { status: 400 }
+      );
+    }
+
+    // Handle other validation errors
     if (error instanceof Error) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }

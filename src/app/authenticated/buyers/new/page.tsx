@@ -25,6 +25,8 @@ import { toast } from "sonner";
 import { TagInput } from "@/components/ui/tag-input";
 import { createClient } from "@/lib/supabase/client";
 import { AlertCircle } from "lucide-react";
+import { BuyerFormSchema } from "@/lib/schemas/buyer.schema";
+import { z } from "zod";
 
 interface FormData {
   fullName: string;
@@ -102,68 +104,52 @@ export default function NewBuyerPage() {
     setFormData((prev) => ({ ...prev, tags }));
   };
 
+  // Map form BHK values to enum values for validation
+  const mapBhkValueForValidation = (bhkValue: string): string => {
+    switch (bhkValue) {
+      case "1": return "ONE";
+      case "2": return "TWO";
+      case "3": return "THREE";
+      case "4": return "FOUR";
+      default: return bhkValue; // For "Studio" and any other values
+    }
+  };
+
   const validate = () => {
-    const newErrors: FormErrors = {};
+    try {
+      // Transform form data to match schema expectations
+      const transformedData = {
+        ...formData,
+        phone: formData.phone.replace(/\D/g, ''), // Remove all non-digit characters
+        budgetMin: formData.budgetMin ? parseInt(formData.budgetMin) : null,
+        budgetMax: formData.budgetMax ? parseInt(formData.budgetMax) : null,
+        email: formData.email || null,
+        notes: formData.notes || null,
+        bhk: (formData.propertyType === "Apartment" || formData.propertyType === "Villa") 
+          ? mapBhkValueForValidation(formData.bhk)
+          : null,
+      };
 
-    if (formData.fullName.trim().length < 2) {
-      newErrors.fullName = "Full name must be at least 2 characters";
-    }
-
-    if (formData.email.trim() && !/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = "Email is invalid";
-    }
-
-    if (!formData.phone.trim()) {
-      newErrors.phone = "Phone is required";
-    } else {
-      // Strip non-digit characters and validate length
-      const phoneDigits = formData.phone.replace(/\D/g, '');
-      if (phoneDigits.length < 10 || phoneDigits.length > 15) {
-        newErrors.phone = "Phone must be 10-15 digits";
+      // Validate using Zod schema
+      BuyerFormSchema.parse(transformedData);
+      setErrors({});
+      return true;
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const newErrors: FormErrors = {};
+        error.issues.forEach((issue) => {
+          if (issue.path.length > 0) {
+            const fieldName = issue.path[0];
+            if (typeof fieldName === 'string') {
+              newErrors[fieldName] = issue.message;
+            }
+          }
+        });
+        setErrors(newErrors);
+        return false;
       }
+      return false;
     }
-
-    if (!formData.city.trim()) {
-      newErrors.city = "City is required";
-    }
-
-    if (!formData.propertyType) {
-      newErrors.propertyType = "Property type is required";
-    }
-
-    if (
-      (formData.propertyType === "Apartment" ||
-        formData.propertyType === "Villa") &&
-      !formData.bhk.trim()
-    ) {
-      newErrors.bhk = "BHK is required for Apartment or Villa";
-    }
-
-    if (!formData.purpose) {
-      newErrors.purpose = "Purpose is required";
-    }
-
-    const budgetMin = parseFloat(formData.budgetMin) || 0;
-    const budgetMax = parseFloat(formData.budgetMax) || 0;
-
-    if (formData.budgetMin && isNaN(budgetMin)) {
-      newErrors.budgetMin = "Minimum budget must be a number";
-    }
-
-    if (formData.budgetMax && isNaN(budgetMax)) {
-      newErrors.budgetMax = "Maximum budget must be a number";
-    }
-
-    if (formData.budgetMin && formData.budgetMax && budgetMin > budgetMax) {
-      newErrors.budgetMax = "Maximum budget must be greater than or equal to minimum";
-    }
-
-    if (!formData.timeline) {
-      newErrors.timeline = "Timeline is required";
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -211,7 +197,7 @@ export default function NewBuyerPage() {
       const buyerData = {
         fullName: formData.fullName,
         email: formData.email || null,
-        phone: formData.phone,
+        phone: formData.phone.replace(/\D/g, ''), // Remove all non-digit characters
         city: formData.city,
         propertyType: formData.propertyType,
         bhk: (formData.propertyType === "Apartment" || formData.propertyType === "Villa") 

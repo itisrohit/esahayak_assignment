@@ -25,6 +25,8 @@ import { TagInput } from "@/components/ui/tag-input";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { AlertCircle } from "lucide-react";
+import { UpdateBuyerSchema } from "@/lib/schemas/buyer.schema";
+import { z } from "zod";
 
 interface Buyer {
   id: string;
@@ -71,7 +73,7 @@ export default function BuyerDetailPage() {
 
   const [formData, setFormData] = useState<Buyer | null>(null);
   const [history, setHistory] = useState<BuyerHistory[]>([]);
-  const [errors] = useState<FormErrors>({});
+  const [errors, setErrors] = useState<FormErrors>({});
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -207,73 +209,42 @@ export default function BuyerDetailPage() {
   };
 
   const validate = () => {
-    const newErrors: FormErrors = {};
-
     if (!formData) return false;
 
-    if (formData.fullName.trim().length < 2) {
-      newErrors.fullName = "Full name must be at least 2 characters";
-    }
+    try {
+      // Transform form data to match schema expectations
+      const transformedData = {
+        ...formData,
+        phone: formData.phone.replace(/\D/g, ''), // Remove all non-digit characters
+        budgetMin: formData.budgetMin ? parseInt(formData.budgetMin.toString()) : null,
+        budgetMax: formData.budgetMax ? parseInt(formData.budgetMax.toString()) : null,
+        email: formData.email || null,
+        notes: formData.notes || null,
+        bhk: (formData.propertyType === "Apartment" || formData.propertyType === "Villa") 
+          ? mapBhkToEnumValue(formData.bhk || "") 
+          : null,
+      };
 
-    if (formData.email && !/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = "Email is invalid";
-    }
-
-    if (!formData.phone.trim()) {
-      newErrors.phone = "Phone is required";
-    } else {
-      // Strip non-digit characters and validate length
-      const phoneDigits = formData.phone.replace(/\D/g, '');
-      if (phoneDigits.length < 10 || phoneDigits.length > 15) {
-        newErrors.phone = "Phone must be 10-15 digits";
+      // Validate using Zod schema
+      UpdateBuyerSchema.parse(transformedData);
+      setErrors({});
+      return true;
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const newErrors: FormErrors = {};
+        error.issues.forEach((issue) => {
+          if (issue.path.length > 0) {
+            const fieldName = issue.path[0];
+            if (typeof fieldName === 'string') {
+              newErrors[fieldName] = issue.message;
+            }
+          }
+        });
+        setErrors(newErrors);
+        return false;
       }
+      return false;
     }
-
-    if (!formData.city.trim()) {
-      newErrors.city = "City is required";
-    }
-
-    if (!formData.propertyType) {
-      newErrors.propertyType = "Property type is required";
-    }
-
-    if (
-      (formData.propertyType === "Apartment" ||
-        formData.propertyType === "Villa") &&
-      !formData.bhk
-    ) {
-      newErrors.bhk = "BHK is required for Apartment or Villa";
-    }
-
-    if (!formData.purpose) {
-      newErrors.purpose = "Purpose is required";
-    }
-
-    const budgetMin = formData.budgetMin || 0;
-    const budgetMax = formData.budgetMax || 0;
-
-    if (formData.budgetMin && isNaN(budgetMin)) {
-      newErrors.budgetMin = "Minimum budget must be a number";
-    }
-
-    if (formData.budgetMax && isNaN(budgetMax)) {
-      newErrors.budgetMax = "Maximum budget must be a number";
-    }
-
-    if (formData.budgetMin && formData.budgetMax && budgetMin > budgetMax) {
-      newErrors.budgetMax =
-        "Maximum budget must be greater than or equal to minimum";
-    }
-
-    if (!formData.timeline) {
-      newErrors.timeline = "Timeline is required";
-    }
-
-    // Update errors state
-    // In a real implementation, we would set the errors state here
-    // For now, we're just returning the validation result
-
-    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -295,6 +266,11 @@ export default function BuyerDetailPage() {
     // Prepare data for API
     const buyerData = {
       ...formData,
+      phone: formData.phone.replace(/\D/g, ''), // Remove all non-digit characters
+      budgetMin: formData.budgetMin ? parseInt(formData.budgetMin.toString()) : null,
+      budgetMax: formData.budgetMax ? parseInt(formData.budgetMax.toString()) : null,
+      email: formData.email || null,
+      notes: formData.notes || null,
       bhk: (formData.propertyType === "Apartment" || formData.propertyType === "Villa") 
         ? mapBhkToEnumValue(formData.bhk || "")
         : null,

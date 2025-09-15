@@ -2,6 +2,8 @@ import { createNewBuyer, getBuyersWithPagination } from '@/lib/buyer-service';
 import { createClient } from '@/lib/supabase/server';
 import { isRateLimited, getRateLimitHeaders } from '@/lib/rate-limiter';
 import { NextRequest, NextResponse } from 'next/server';
+import { CreateBuyerSchema } from '@/lib/schemas/buyer.schema';
+import { z } from 'zod';
 
 // POST /api/buyers - Create a new buyer
 export async function POST(request: NextRequest) {
@@ -34,9 +36,17 @@ export async function POST(request: NextRequest) {
     // Parse the request body
     const body = await request.json();
     
+    // Validate request body with Zod
+    CreateBuyerSchema.parse({
+      ...body,
+      ownerId: user.id,
+    });
+    
     // Create the buyer with the current user as the owner
     const buyer = await createNewBuyer({
       ...body,
+      email: body.email || null,
+      notes: body.notes || null,
       ownerId: user.id,
     });
     
@@ -49,7 +59,23 @@ export async function POST(request: NextRequest) {
   } catch (error: unknown) {
     console.error('Error creating buyer:', error);
     
-    // Handle validation errors
+    // Handle Zod validation errors
+    if (error instanceof z.ZodError) {
+      const errorMessages = error.issues.map((issue) => ({
+        path: issue.path.join('.'),
+        message: issue.message,
+      }));
+      
+      return NextResponse.json(
+        { 
+          error: 'Validation failed',
+          details: errorMessages
+        },
+        { status: 400 }
+      );
+    }
+    
+    // Handle other errors
     if (error instanceof Error) {
       return NextResponse.json(
         { error: error.message },

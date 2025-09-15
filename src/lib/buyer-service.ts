@@ -8,11 +8,37 @@ import {
   createBuyerHistory,
   getBuyerHistory as getBuyerHistoryFromDb,
 } from "./prisma-data";
+import { 
+  BudgetValidationSchema, 
+  BHKValidationSchema, 
+  CreateBuyerSchema,
+  UpdateBuyerSchema
+} from "./schemas/buyer.schema";
+import { z } from "zod";
 
 // Function to validate budget constraints
 export function validateBudget(budgetMin: number | null, budgetMax: number | null): void {
-  if (budgetMin && budgetMax && budgetMin > budgetMax) {
-    throw new Error("budgetMin must be less than or equal to budgetMax");
+  const result = BudgetValidationSchema.safeParse({ budgetMin, budgetMax });
+  if (!result.success) {
+    // Throw a specific error message that matches the test expectation
+    if (budgetMin && budgetMax && budgetMin > budgetMax) {
+      throw new Error("budgetMin must be less than or equal to budgetMax");
+    }
+    // Fallback to the first error message
+    throw new Error(result.error.issues[0]?.message || "Budget validation failed");
+  }
+}
+
+// Function to validate BHK requirement
+export function validateBHK(propertyType: string, bhk: string | null): void {
+  const result = BHKValidationSchema.safeParse({ propertyType, bhk });
+  if (!result.success) {
+    // Throw a specific error message that matches the test expectation
+    if (['Apartment', 'Villa'].includes(propertyType) && !bhk) {
+      throw new Error("BHK is required for residential property types");
+    }
+    // Fallback to the first error message
+    throw new Error(result.error.issues[0]?.message || "BHK validation failed");
   }
 }
 
@@ -20,14 +46,21 @@ export function validateBudget(budgetMin: number | null, budgetMax: number | nul
 export async function createNewBuyer(
   buyerData: Omit<Buyer, "id" | "updatedAt" | "createdAt">,
 ): Promise<Buyer> {
+  // Validate with Zod schema
+  try {
+    CreateBuyerSchema.parse(buyerData);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      throw new Error(`Validation error: ${error.issues[0].message}`);
+    }
+    throw error;
+  }
+
   // Validate budget constraints
   validateBudget(buyerData.budgetMin, buyerData.budgetMax);
 
-  // For non-residential property types, BHK is optional
-  const isResidential = ["Apartment", "Villa"].includes(buyerData.propertyType);
-  if (isResidential && !buyerData.bhk) {
-    throw new Error("BHK is required for residential property types");
-  }
+  // Validate BHK requirement
+  validateBHK(buyerData.propertyType, buyerData.bhk || null);
 
   // Create the buyer
   const buyer = await createBuyer(buyerData as Buyer);
@@ -59,20 +92,31 @@ export async function updateBuyerWithHistory(
     throw new Error("Buyer not found");
   }
 
+  // Merge current data with updated data for validation
+  const mergedData = {
+    ...currentBuyer,
+    ...buyerData,
+  };
+
+  // Validate with Zod schema
+  try {
+    UpdateBuyerSchema.parse(mergedData);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      throw new Error(`Validation error: ${error.issues[0].message}`);
+    }
+    throw error;
+  }
+
   // Validate budget constraints
   const budgetMin = buyerData.budgetMin ?? currentBuyer.budgetMin;
   const budgetMax = buyerData.budgetMax ?? currentBuyer.budgetMax;
-  if (budgetMin && budgetMax && budgetMin > budgetMax) {
-    throw new Error("budgetMin must be less than or equal to budgetMax");
-  }
+  validateBudget(budgetMin, budgetMax);
 
-  // For non-residential property types, BHK is optional
+  // Validate BHK requirement
   const propertyType = buyerData.propertyType ?? currentBuyer.propertyType;
-  const isResidential = ["Apartment", "Villa"].includes(propertyType);
   const bhk = buyerData.bhk ?? currentBuyer.bhk;
-  if (isResidential && !bhk) {
-    throw new Error("BHK is required for residential property types");
-  }
+  validateBHK(propertyType, bhk);
 
   // Update the buyer
   const updatedBuyer = await updateBuyer(id, buyerData);

@@ -290,18 +290,18 @@ graph TD
         J
     end
 
-    style A fill:#FFE4C4,stroke:#333
-    style B fill:#E6E6FA,stroke:#333
-    style C fill:#DDA0DD,stroke:#333
-    style D fill:#DDA0DD,stroke:#333
-    style E fill:#98FB98,stroke:#333
-    style F fill:#87CEEB,stroke:#333
-    style G fill:#FFA07A,stroke:#333
-    style H fill:#FFA07A,stroke:#333
-    style I fill:#FFD700,stroke:#333
-    style J fill:#FFD700,stroke:#333
-    style K fill:#87CEEB,stroke:#333
-    style L fill:#87CEEB,stroke:#333
+    style A fill:#2D3748,stroke:#E2E8F0,color:#E2E8F0
+    style B fill:#4A5568,stroke:#E2E8F0,color:#E2E8F0
+    style C fill:#718096,stroke:#E2E8F0,color:#E2E8F0
+    style D fill:#718096,stroke:#E2E8F0,color:#E2E8F0
+    style E fill:#48BB78,stroke:#E2E8F0,color:#1A202C
+    style F fill:#4299E1,stroke:#E2E8F0,color:#1A202C
+    style G fill:#ED8936,stroke:#E2E8F0,color:#1A202C
+    style H fill:#ED8936,stroke:#E2E8F0,color:#1A202C
+    style I fill:#ECC94B,stroke:#E2E8F0,color:#1A202C
+    style J fill:#ECC94B,stroke:#E2E8F0,color:#1A202C
+    style K fill:#4299E1,stroke:#E2E8F0,color:#1A202C
+    style L fill:#4299E1,stroke:#E2E8F0,color:#1A202C
 ```
 
 ## What's Done vs Skipped
@@ -349,6 +349,18 @@ graph TD
 
 ✅ **Basic full-text search**: Search functionality on fullName, phone, email, and notes
 
+### Implemented Nice-to-haves
+
+✅ **Tag chips**: Tags are displayed as chips in both list and detail views
+
+✅ **Basic full-text search**: Search functionality on fullName, phone, email, and notes
+
+✅ **Zod validation**: Zod validation has been fully implemented throughout the application:
+- Client-side form validation in React components using Zod schemas
+- Server-side API request validation for all buyer endpoints
+- Type-safe validation with clear error messages
+- Consistent validation rules across the entire application
+
 ### Skipped Nice-to-haves (and why)
 
 ❌ **Tag chips with typeahead**: While tags are displayed as chips, typeahead functionality was not implemented due to time constraints. The current implementation uses a simple input field for tags.
@@ -360,10 +372,6 @@ graph TD
 ❌ **File upload for attachmentUrl**: File upload functionality was not implemented due to time constraints and complexity of handling file storage.
 
 ❌ **Admin role**: No admin role was implemented to allow editing all records. All users can only edit their own records.
-
-### Skipped Requirements (and why)
-
-❌ **Zod validation**: While Zod is installed as a dependency, it was not actually implemented in the codebase. The validation is done through custom functions in the form components and service layer instead. This was likely skipped due to time constraints and the existing validation implementation being sufficient for the requirements.
 
 The application is fully functional and meets all the must-have requirements. The skipped nice-to-haves were omitted primarily due to time constraints and focus on core functionality.
 
