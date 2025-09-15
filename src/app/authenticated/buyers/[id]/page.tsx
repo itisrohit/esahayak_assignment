@@ -334,50 +334,45 @@ export default function BuyerDetailPage() {
     }
   };
 
-  const exportHistory = () => {
-    if (history.length === 0) {
-      toast.error("No history to export", {
-        description: "There is no history data to export",
+  const exportCSV = () => {
+    if (!formData) {
+      toast.error("No data to export", {
+        description: "Buyer data is not available",
         descriptionClassName: "text-muted-foreground",
       });
       return;
     }
 
-    const headers = ["Field", "Old Value", "New Value", "Timestamp", "User"];
-    const csvRows = [];
+    // Define the headers that match the import template
+    const headers = ['fullName', 'email', 'phone', 'city', 'propertyType', 'bhk', 'purpose', 'budgetMin', 'budgetMax', 'timeline', 'source', 'notes', 'tags'];
+    
+    // Create the CSV row with current buyer data
+    const csvRow = [
+      `"${formData.fullName}"`,
+      `"${formData.email || ''}"`,
+      `"${formData.phone}"`,
+      `"${formData.city}"`,
+      `"${formData.propertyType}"`,
+      `"${formData.bhk || ''}"`,
+      `"${formData.purpose}"`,
+      `"${formData.budgetMin || ''}"`,
+      `"${formData.budgetMax || ''}"`,
+      `"${formData.timeline}"`,
+      `"${formData.source}"`,
+      `"${formData.notes || ''}"`,
+      `"${formData.tags.join(', ')}"`
+    ];
 
-    // Add header
-    csvRows.push(headers.join(","));
-
-    // Process each history entry
-    history.forEach((h) => {
-      // Get all field changes for this history entry
-      const fieldChanges = Object.entries(h.diff || {}).map(([field, values]) => ({
-        field,
-        oldValue: values?.oldValue ?? "N/A",
-        newValue: values?.newValue ?? "N/A"
-      }));
-
-      // Add each field change as a separate row
-      fieldChanges.forEach((change) => {
-        csvRows.push([
-          `"${change.field}"`,
-          `"${change.oldValue}"`,
-          `"${change.newValue}"`,
-          h.changedAt,
-          h.changedBy,
-        ].join(","));
-      });
-    });
-
-    const csvContent = csvRows.join("\n");
+    // Combine header and data
+    const csvContent = [headers.join(","), csvRow.join(",")].join("\n");
+    
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     if (link.href) {
       URL.revokeObjectURL(link.href);
     }
     link.href = URL.createObjectURL(blob);
-    link.download = `buyer_${id}_history.csv`;
+    link.download = `buyer_${id}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -493,7 +488,7 @@ export default function BuyerDetailPage() {
                 {isEditing ? "Cancel" : "Edit"}
               </Button>
             )}
-            <Button variant="outline" onClick={exportHistory}>
+            <Button variant="outline" onClick={exportCSV}>
               Export as CSV
             </Button>
           </div>

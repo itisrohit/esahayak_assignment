@@ -65,6 +65,8 @@ const formatDate = (dateString: string) => {
   return new Date(dateString).toLocaleDateString();
 };
 
+
+
 export default function BuyersPage() {
   const router = useRouter();
   const searchParams = useSearchParams();

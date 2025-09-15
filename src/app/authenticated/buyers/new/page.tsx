@@ -8,7 +8,7 @@ import {
   CardTitle,
   CardFooter,
 } from "@/components/ui/card";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,6 +47,7 @@ interface FormErrors {
 
 export default function NewBuyerPage() {
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState<FormData>({
     fullName: "",
     email: "",
@@ -64,6 +65,7 @@ export default function NewBuyerPage() {
   });
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
   const supabase = createClient();
 
   const handleInputChange = (
@@ -247,6 +249,170 @@ export default function NewBuyerPage() {
     }
   };
 
+  // Handle CSV file import
+  const handleImportCSV = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  // Process CSV file
+  const processCSVFile = async (file: File) => {
+    setIsImporting(true);
+    
+    try {
+      const text = await file.text();
+      const lines = text.split('\n');
+      
+      if (lines.length < 2) {
+        toast.error("Invalid CSV file", {
+          description: "CSV file must contain headers and at least one row of data",
+          descriptionClassName: "text-muted-foreground",
+        });
+        return;
+      }
+
+      // Parse headers
+      const headers = lines[0].split(',').map(header => header.trim().replace(/"/g, ''));
+      
+      // Required headers check (status is not required as it defaults to 'New')
+      const requiredHeaders = ['fullName', 'email', 'phone', 'city', 'propertyType', 'bhk', 'purpose', 'budgetMin', 'budgetMax', 'timeline', 'source', 'notes', 'tags'];
+      const missingHeaders = requiredHeaders.filter(header => !headers.includes(header));
+      
+      if (missingHeaders.length > 0) {
+        toast.error("Invalid CSV format", {
+          description: `Missing required columns: ${missingHeaders.join(', ')}`,
+          descriptionClassName: "text-muted-foreground",
+        });
+        return;
+      }
+
+      // Get current user
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      
+      if (userError || !user) {
+        toast.error("Authentication error", {
+          description: "Please log in again",
+          descriptionClassName: "text-muted-foreground",
+        });
+        router.push("/login");
+        return;
+      }
+
+      // Process each row
+      let successCount = 0;
+      let errorCount = 0;
+      const errors: string[] = [];
+
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+
+        try {
+          const values = line.split(',').map(value => value.trim().replace(/"/g, ''));
+          const row: Record<string, string> = {};
+          
+          headers.forEach((header, index) => {
+            row[header] = values[index] || '';
+          });
+
+          // Map BHK values to enum values
+          const mapBhkValue = (bhkValue: string): string => {
+            switch (bhkValue) {
+              case "1": return "ONE";
+              case "2": return "TWO";
+              case "3": return "THREE";
+              case "4": return "FOUR";
+              default: return bhkValue;
+            }
+          };
+
+          // Prepare data for API
+          const buyerData = {
+            fullName: row.fullName,
+            email: row.email || null,
+            phone: row.phone,
+            city: row.city,
+            propertyType: row.propertyType,
+            bhk: (row.propertyType === "Apartment" || row.propertyType === "Villa") 
+              ? mapBhkValue(row.bhk)
+              : null,
+            purpose: row.purpose,
+            budgetMin: row.budgetMin ? parseInt(row.budgetMin) : null,
+            budgetMax: row.budgetMax ? parseInt(row.budgetMax) : null,
+            timeline: row.timeline,
+            source: row.source || "Website",
+            notes: row.notes || null,
+            tags: row.tags ? row.tags.split(',').map(tag => tag.trim()) : [],
+            ownerId: user.id,
+          };
+
+          // Submit to API
+          const response = await fetch("/api/buyers", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(buyerData),
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || "Failed to create buyer");
+          }
+
+          successCount++;
+        } catch (error) {
+          errorCount++;
+          errors.push(`Row ${i + 1}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+      }
+
+      // Show results
+      if (successCount > 0) {
+        toast.success(`${successCount} buyer(s) imported successfully!`, {
+          description: errorCount > 0 ? `${errorCount} record(s) failed to import` : "",
+          descriptionClassName: "text-muted-foreground",
+        });
+      }
+
+      if (errorCount > 0) {
+        console.error("Import errors:", errors);
+        toast.error(`${errorCount} buyer(s) failed to import`, {
+          description: "Check console for details",
+          descriptionClassName: "text-muted-foreground",
+        });
+      }
+
+      // Refresh the page to show new buyers
+      router.push("/authenticated/buyers");
+    } catch (error) {
+      toast.error("Failed to import CSV", {
+        description: error instanceof Error ? error.message : "Please try again",
+        descriptionClassName: "text-muted-foreground",
+      });
+      console.error("Error importing CSV:", error);
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  // Handle file selection
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.type !== 'text/csv' && !file.name.endsWith('.csv')) {
+        toast.error("Invalid file type", {
+          description: "Please select a CSV file",
+          descriptionClassName: "text-muted-foreground",
+        });
+        return;
+      }
+      
+      processCSVFile(file);
+    }
+  };
+
   return (
     <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-12">
       <Link
@@ -273,7 +439,26 @@ export default function NewBuyerPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Add New Buyer</CardTitle>
+          <div className="flex justify-between items-center">
+            <CardTitle>Add New Buyer</CardTitle>
+            <Button variant="outline" onClick={handleImportCSV} disabled={isImporting}>
+              {isImporting ? (
+                <>
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent mr-2"></span>
+                  Importing...
+                </>
+              ) : (
+                "Import CSV"
+              )}
+            </Button>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              accept=".csv,text/csv"
+              className="hidden"
+            />
+          </div>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -507,7 +692,7 @@ export default function NewBuyerPage() {
           </form>
         </CardContent>
         <CardFooter className="flex justify-end">
-          <Button onClick={handleSubmit} disabled={isSubmitting}>
+          <Button onClick={handleSubmit} disabled={isSubmitting || isImporting}>
             {isSubmitting ? (
               <>
                 <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent mr-2"></span>
